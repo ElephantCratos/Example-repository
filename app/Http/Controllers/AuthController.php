@@ -36,7 +36,7 @@ class AuthController extends Controller
         $expiration = Config::get('sanctum.expiration');
         $maxActiveTokens = env('MAX_ACTIVE_TOKENS', 5);
 
-        $user = Auth::user();
+        $user = Auth::user(); 
 
         if ($user->tokens()->count() >= $maxActiveTokens) {
             $oldestToken = $user->tokens()->oldest()->first();
@@ -59,6 +59,7 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request) : JsonResponse
     {
+       
         $data = $request->toRegistrationDTO();
         $data = $data -> toArray();
 
@@ -71,6 +72,7 @@ class AuthController extends Controller
 
         $user->save();
 
+        
 
         return response()->json($user, 201);
     }
