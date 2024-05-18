@@ -10,6 +10,9 @@ class Permission extends Model
 {
     use HasFactory, SoftDeletes;
 
+
+    public $timestamps = false;
+    
     protected $fillable = [ 
         'name',
         'description',

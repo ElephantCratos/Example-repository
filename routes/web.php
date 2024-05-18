@@ -16,7 +16,7 @@ use App\Http\Controllers\AuthController;
 
     Route::get('/', function () {
         return view('welcome');
-    });
+    })->name('home');
 
 Route::get('/formLogin', function() {
     return view('formLogin');

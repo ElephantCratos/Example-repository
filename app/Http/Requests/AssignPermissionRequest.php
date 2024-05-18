@@ -2,38 +2,34 @@
 
 namespace App\Http\Requests;
 
-use App\DTO\RoleDTO;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Http\FormRequest;
+use App\DTO\RolesAndPermissionsDTO;
 
-class CreateRoleRequest extends FormRequest
+class AssignPermissionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
+
     public function authorize(): bool
     {
         $userRoles = Auth::user()->roles;
         foreach ($userRoles as $role)
         {
-            if ($role->permissions->contains('name', 'create-role')) 
+            if ($role->permissions->contains('name', 'assign-permission')) {
                     return true;
+            }
         }
-        return abort(403,'create-role permission required');
-    
+        return abort(403,'assign-permission permission required');
     }
 
-
-    public function toRoleDTO() : RoleDTO
+    public function toRolesAndPermissionsDTO()
     {
-
-        return new RoleDTO(
-            $this->input('name'),
-            $this->input('description'),
-            $this->input('cipher'),
+        return new RolesAndPermissionsDTO(
+            $this->input('permissionsId'),
         );
     }
-
     /**
      * Get the validation rules that apply to the request.
      *
@@ -42,9 +38,7 @@ class CreateRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'           => ['required' , 'unique:roles' , 'string'],
-            'description'    => ['required', 'string'],
-            'cipher'         => ['required',  'unique:roles' , 'string'],
+            'permissionsId' => ['required' , 'array'],
         ];
     }
 }

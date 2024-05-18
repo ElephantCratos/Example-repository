@@ -14,7 +14,13 @@ class UpdateRoleRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Auth::check();
+        $userRoles = Auth::user()->roles;
+        foreach ($userRoles as $role)
+        {
+            if ($role->permissions->contains('name', 'update-role')) 
+                    return true;
+        }
+        return abort(403,'update-role permission required');
     }
 
     public function toRoleDTO() : RoleDTO

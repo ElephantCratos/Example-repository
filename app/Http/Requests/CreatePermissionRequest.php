@@ -15,7 +15,13 @@ class CreatePermissionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Auth::check();
+        $userRoles = Auth::user()->roles;
+        foreach ($userRoles as $role)
+        {
+            if ($role->permissions->contains('name', 'create-permission')) 
+                    return true;
+        }
+        return abort(403,'create-permission permission required');
     }
 
 

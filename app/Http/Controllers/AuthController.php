@@ -78,17 +78,7 @@ class AuthController extends Controller
     }
 
 
-    /**
-     * Возвращает экземпляр авторизованного пользователя в формате JSON.
-     *
-     * @return JsonResponse
-     */
-    public function me() : JsonResponse
-    {
-        $user = Auth::user();
-        $userDTO = UserDTO::fromUser($user);
-        return response()->json(['userInfo' => $userDTO->toArray()]);
-    }
+    
 
 
     /**

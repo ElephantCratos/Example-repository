@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->string('description');
             $table->string('cipher')->unique();
-            $table->timestamps();
+            $table->timestamp('created_at')->default(Carbon::now());
             $table->foreignId('created_by')->references('id')->on('users');
             $table->softDeletes();
             $table->foreignId('deleted_by')->nullable()->references('id')->on('users');

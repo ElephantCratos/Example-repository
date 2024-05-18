@@ -14,7 +14,13 @@ class UpdatePermissionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Auth::check();
+        $userRoles = Auth::user()->roles;
+        foreach ($userRoles as $role)
+        {
+            if ($role->permissions->contains('name', 'update-permission')) 
+                    return true;
+        }
+        return abort(403,'update-permission permission required');
     }
 
     public function toPermissionDTO() : PermissionDTO

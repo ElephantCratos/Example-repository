@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateRoleRequest;
 use App\Http\Requests\UpdateRoleRequest;
+use App\DTO\RolesCollectionDTO;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -14,9 +15,29 @@ use Illuminate\Http\Request;
 
 class RoleController extends Controller
 {   
+
+    /**
+     * Возвращает коллекцию всех ролей,в том числе мягко удаленных в формате JSON.
+     *
+     * @return JsonResponse
+     */
     public function showRoleCollection() 
     {
-        //
+        $userRoles = Auth::user()->roles;
+        foreach ($userRoles as $role)
+        {
+            if ($role->permissions->contains('name', 'get-list-role')) 
+            {
+                $roles = Role::withTrashed()->get();
+        
+                $rolesCollectionDTO = new RolesCollectionDTO($roles);
+                $rolesCollectionDTO = $rolesCollectionDTO->getFilteredRoles();
+
+                return response()->json(['rolesCollection' => $rolesCollectionDTO], 200);
+            }
+        }
+        abort(403,'get-list-role permission required');
+        
     }
 
 
@@ -24,25 +45,33 @@ class RoleController extends Controller
      * Возвращает экземпляр запрошенной по id роли в формате JSON.
      *
      * @return JsonResponse
-     * @param $id
+     * @param int $id
      */
     public function showRole($id) : JsonResponse
     {
-        
-        $role = Role::findOrFail($id);
+        $userRoles = Auth::user()->roles;
+        foreach ($userRoles as $roleUser)
+        {
+            if ($roleUser->permissions->contains('name', 'read-role')) 
+            {
+                $role = Role::findOrFail($id);
 
-        $roleDTO = RoleDTO::fromRole($role);
+                $roleDTO = RoleDTO::fromRole($role);
+                $rolePermissions = RoleDTO::getPermissionsOfRole($role);
         
-
-        return response()->json(['roleInfo' => $roleDTO->toArray()]);
+                return response()->json(['roleInfo' => $roleDTO->toArray(), 'rolePermissions' => $rolePermissions]);
+            }
+        }
+        abort(403,'get-list-role permission required');
     }
     
 
     /**
-     * Возвращает экземпляр запрошенного по id роли в формате JSON.
+     * Создает новую роль. 
+     * Возвращает экземпляр созданной роли в формате JSON.
      *
      * @return JsonResponse
-     * @param CreateRoleRequest
+     * @param  CreateRoleRequest
      */
     public function create(CreateRoleRequest $request) : JsonResponse
     {
@@ -65,11 +94,11 @@ class RoleController extends Controller
 
     /**
      * Обновляет модель запрошенной по id роли.
-     * Возвращает обновленный экземпляр запрошенного роли в формате JSON.
+     * Возвращает обновленный экземпляр запрошенной роли в формате JSON.
      *
      * @return JsonResponse
      * @param UpdateRoleRequest
-     * @param $id
+     * @param int $id 
      */
     public function update(UpdateRoleRequest $request, $id) : JsonResponse
     {
@@ -97,45 +126,67 @@ class RoleController extends Controller
      */
     public function softDelete($id) : JsonResponse
     {
-        $role = Role::findOrFail($id);
-        $role->deleted_by = Auth::user()->id;
-        $role->delete();
-        $role->update();
-        return response()->json(['Роль мягко удалена'=> $role], 200);
+        $userRoles = Auth::user()->roles;
+        foreach ($userRoles as $roleUser)
+        {
+            if ($roleUser->permissions->contains('name', 'soft-delete-role')) 
+            {
+                $role = Role::findOrFail($id);
+                $role->deleted_by = Auth::user()->id;
+                $role->delete();
+                $role->update();
+                return response()->json(['Роль мягко удалена'=> $role], 200);
+            }
+        }
+        abort(403,'soft-delete-role permission required');
     }
 
 
     /**
      * Жестко удаляет роль по id.
-     * Возвращает обновленный экземпляр жестко удаленной роли в формате JSON.
      *
      * @return JsonResponse
-     * @param $id
+     * @param int $id 
      */
     public function forceDelete($id) : JsonResponse
     {
-        $role = Role::withTrashed()->findOrFail($id);
-        $role->forceDelete();
-        return response()->json(['Роль полностью удалена'] , 200);
+        $userRoles = Auth::user()->roles;
+        foreach ($userRoles as $roleUser)
+        {
+            if ($roleUser->permissions->contains('name', 'delete-role')) 
+            {
+                $role = Role::withTrashed()->findOrFail($id);
+                $role->forceDelete();
+                return response()->json(['Роль полностью удалена'] , 200);
+            }
+        }
+        abort(403,'delete-role permission required');
     }
 
 
     /**
      * Восстанавливает мягко удаленную роль по id.
-     * Возвращает обновленный экземпляр мягко удаленной роли в формате JSON.
+     * Возвращает обновленный экземпляр восстановленной роли в формате JSON.
      *
      * @return JsonResponse
-     * @param $id
+     * @param int $id
      */
     public function restore($id) : JsonResponse
     {
-      
-        $role = Role::onlyTrashed()->findOrFail($id);
-        $role->deleted_by = NULL;
-        $role->update();
+        $userRoles = Auth::user()->roles;
+        foreach ($userRoles as $roleUser)
+        {
+            if ($roleUser->permissions->contains('name', 'restore-role')) 
+            {
+                $role = Role::onlyTrashed()->findOrFail($id);
+                $role->deleted_by = NULL;
+                $role->update();
+                $role->restore();
 
-        $role->restore();
+                return response()->json(['Роль была успешно восстановлена'=> $role], 200);
+            }
+        }
 
-        return response()->json(['Роль была успешно восстановлена'=> $role], 200);
+        abort(403,'restore-role permission required');
     }
 }

@@ -3,31 +3,32 @@
 namespace App\DTO;
 
 
-class RoleDTO
+class RolesCollectionDTO
 {
-    private string $name;
+    private  $roles;
 
-    private string $description;
-
-    private string $cipher;
+   
 
 
 
-    public function __construct(string $name, string $description, string $cipher)
+    public function __construct($roles)
     {
-        $this->name = $name;
-        $this->description = $description;
-        $this->cipher = $cipher;
+        $this->roles = $roles;
+        
     }
 
     
 
-    public function toArray() : array
+
+    public function getFilteredRoles()
     {
-        return [
-            'name'        => $this->name,
-            'description' => $this->description,
-            'cipher'      => $this->cipher,
-        ];
+        return $this->roles->map(function ($role) {
+            return [
+                'id' => $role->id,
+                'name' => $role->name,
+                'description' => $role->description,
+                'deleted_at' => ($role->deleted_at!=null) ? 'Soft Deleted at ' . $role->deleted_at : 'Not Deleted',
+            ];
+        });
     }
 }

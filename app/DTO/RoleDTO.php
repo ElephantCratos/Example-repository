@@ -26,6 +26,11 @@ class RoleDTO
         return new self($role->name, $role->description, $role->cipher);
     }
 
+    public static function getPermissionsOfRole($role)
+    {
+        return $role->permissions;
+    }
+
     
 
     public function toArray() : array

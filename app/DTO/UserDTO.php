@@ -21,6 +21,11 @@ class UserDTO
         return new self($user->username, $user->email, $user->birthday);
     }
 
+    public static function userRoles($user)
+    {
+        return $user->roles;
+    }
+
     public function toArray() : array
     {
         return[
