@@ -17,6 +17,8 @@ class Permission extends Model
         'name',
         'description',
         'cipher',
+        'deleted_at',
+        'deleted_by',
     ];
 
 

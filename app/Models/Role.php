@@ -12,10 +12,12 @@ class Role extends Model
 
     public $timestamps = false;
     
-    protected $fillable = [ 
+    protected $fillable = [
         'name',
         'description',
         'cipher',
+        'deleted_at',
+        'deleted_by',
     ];
 
 

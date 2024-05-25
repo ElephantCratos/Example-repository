@@ -8,6 +8,7 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolesAndUsersController;
 use App\Http\Controllers\RolesAndPermissionsController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ChangeLogController;
 
 
 /*
@@ -44,7 +45,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
 Route::group(['prefix' => 'ref'], function () {
     
-     
+    
+    //Route::get('/user/{id}/story', [RolesAndUsersController::class,'showUserRoles']);
      Route::get('/user/{id}/role', [RolesAndUsersController::class,'showUserRoles']);
      Route::post('/user/{id}/role', [RolesAndUsersController::class,'assignRoles']);
      Route::delete('/user/{userId}/role/{roleId}', [RolesAndUsersController::class,'detachRoleFromUser']);
@@ -55,21 +57,25 @@ Route::group(['prefix' => 'ref'], function () {
 
                 Route::get('/role',  [RoleController::class, 'showRoleCollection']);
                 Route::get('/role/{id}',  [RoleController::class, 'showRole']);
+                Route::get('/role/{id}/story',  [ChangeLogController::class, 'showRoleLogs']);
                 Route::post('/role',  [RoleController::class, 'create']);
                 Route::put('/role/{id}',  [RoleController::class, 'update']);
                 Route::delete('/role/{id}',  [RoleController::class, 'forceDelete']);
                 Route::delete('/role/{id}/soft',  [RoleController::class,'softDelete']);
                 Route::post ('role/{id}/restore',  [RoleController::class, 'restore']);
+                
 
                 Route::post('/role/{id}/permission', [RolesAndPermissionsController::class,'assignPermissions']);
                 Route::delete('/role/{roleId}/permission/{permissionId}', [RolesAndPermissionsController::class,'detachPermissionFromRole']);
                 Route::delete('/role/{roleId}/permission/{permissionId}/soft', [RolesAndPermissionsController::class,'softDelete']);
                 Route::post('/role/{roleId}/permission/{permissionId}/restore', [RolesAndPermissionsController::class,'restore']);
 
-
+                Route::post('/restoreFromChangelog/{id}', [ChangeLogController::class, 'restoreEntityFromLog']);
+                Route::post('/restoreFromChangelog/{id}/extra', [ChangeLogController::class, 'restoreEntityFromLogExtraVariable']);
 
                 Route::get('/permission',  [PermissionController::class, 'showPermissionCollection']);
                 Route::get('/permission/{id}',  [PermissionController::class, 'showPermission']);
+                Route::get('/permission/{id}/story',  [ChangeLogController::class, 'showPermissionLogs']);
                 Route::post('/permission',  [PermissionController::class, 'create']);
                 Route::put('/permission/{id}',  [PermissionController::class, 'update']);
                 Route::delete('/permission/{id}',  [PermissionController::class, 'forceDelete']);
@@ -82,3 +88,5 @@ Route::group(['prefix' => 'ref'], function () {
    });
    
 });
+
+
