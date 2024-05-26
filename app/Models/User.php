@@ -52,6 +52,8 @@ class User extends Authenticatable
      */
     public function roles()
     {
-        return $this->belongsToMany(Role::class, 'users_and_roles', 'user_id', 'role_id');
+        return $this->belongsToMany(Role::class, 'users_and_roles', 'user_id', 'role_id')
+        ->withoutTrashed()
+        ->wherePivot('deleted_at', null);
     }
 }

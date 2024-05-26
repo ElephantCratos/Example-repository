@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TwoFactorAuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -22,14 +23,19 @@ use App\Http\Controllers\ChangeLogController;
 |
 */
 
+
+
 Route::get('ref/user', [UserController::class,'showUsersList']);
 
+
+Route::post('auth/code', [TwoFactorAuthController::class, 'sendEmailVerification']) -> middleware('auth:sanctum','abilities:confirm-2auth');
+Route::post('auth/2fa', [AuthController::class,'confirmTwoAuth']) -> middleware('auth:sanctum','abilities:confirm-2auth');
 
 Route::group(['prefix' => 'auth'], function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register'])->middleware('guest');
 
-    Route::group(['middleware' => 'auth:sanctum'], function () {
+    Route::group(['middleware' => (['auth:sanctum', 'abilities:use-website'])], function () {
         Route::get('/me', [UserController::class, 'me']);
         Route::post('/out', [AuthController::class, 'out']);
         Route::get('/tokens', [AuthController::class, 'getTokens']);
@@ -41,7 +47,7 @@ Route::group(['prefix' => 'auth'], function () {
     
 });
 
-Route::group(['middleware' => 'auth:sanctum'], function () {
+Route::group(['middleware' => (['auth:sanctum', 'abilities:use-website'])], function () {
 
 Route::group(['prefix' => 'ref'], function () {
     
