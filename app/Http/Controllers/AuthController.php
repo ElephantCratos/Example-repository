@@ -41,26 +41,33 @@ class AuthController extends Controller
             }
             
             $user = Auth::user(); 
-        
-            TwoFactorAuthController::sendEmailVerification($user);
-
             $expiration = Config::get('sanctum.expiration');
             $maxActiveTokens = env('MAX_ACTIVE_TOKENS', 5);
 
-            $user = Auth::user(); 
 
-                if ($user->tokens()->count() >= $maxActiveTokens) {
-                    $oldestToken = $user->tokens()->oldest()->first();
-                    $oldestToken->delete();
-                }
+            if ($user->tokens()->count() >= $maxActiveTokens) {
+                $oldestToken = $user->tokens()->oldest()->first();
+                $oldestToken->delete();
+            }
 
-            $token = $user->createToken('api' , ['confirm-2auth'] , now() -> addMinutes($expiration));
+            if ($user->is_2FA_enabled == true){
+                TwoFactorAuthController::sendEmailVerification($user);
+                $token = $user->createToken('api' , ['confirm-2auth'] , now() -> addMinutes($expiration));
 
-            
-            return response()->json([
-                'message' => 'Вам на почту было отправлено сообщение с кодом для прохождения двухфакторной аутентификации.',
-                'token' => $token->plainTextToken
-            ]);
+                
+                return response()->json([
+                    'message' => 'Вам на почту было отправлено сообщение с кодом для прохождения двухфакторной аутентификации.',
+                    'token' => $token->plainTextToken
+                ]);
+            }
+
+            else {
+                $token = $user->createToken('api' , ['use-website'] , now() -> addMinutes($expiration));
+
+                return response()->json([
+                    'token' => $token->plainTextToken
+                ]);
+            }
 
         }
 
@@ -69,7 +76,7 @@ class AuthController extends Controller
      * Функция подтверждения двухфакторной аутентификации.
      * В случае успеха возвращает access_token пользователя с полными правами в формате JSON
      *
-     * @param LoginRequest $request
+     * @param TwoAuthCodeRequest $request
      * @return JsonResponse
      */
         public function confirmTwoAuth(TwoAuthCodeRequest $request) : JsonResponse
@@ -78,20 +85,20 @@ class AuthController extends Controller
             
             if (TwoFactorAuthController::confirmCode($code)){
                 
-            $expiration = Config::get('sanctum.expiration');
-            $maxActiveTokens = env('MAX_ACTIVE_TOKENS', 5);
+                $expiration = Config::get('sanctum.expiration');
+                $maxActiveTokens = env('MAX_ACTIVE_TOKENS', 5);
 
-            $user = Auth::user(); 
+                $user = Auth::user(); 
 
-                if ($user->tokens()->count() >= $maxActiveTokens) {
-                    $oldestToken = $user->tokens()->oldest()->first();
-                    $oldestToken->delete();
-                }
-            
-            $token = $user->createToken('api' , ['use-website'] , now() -> addMinutes($expiration));
-            $user->currentAccessToken()->delete();
+                    if ($user->tokens()->count() >= $maxActiveTokens) {
+                        $oldestToken = $user->tokens()->oldest()->first();
+                        $oldestToken->delete();
+                    }
+                
+                $token = $user->createToken('api' , ['use-website'] , now() -> addMinutes($expiration));
+                $user->currentAccessToken()->delete();
 
-            return response()->json(['token' => $token->plainTextToken]);
+                return response()->json(['token' => $token->plainTextToken]);
             }
             return response()->json(['message' => 'Wrong Code']);
         }

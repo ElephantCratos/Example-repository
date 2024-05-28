@@ -82,37 +82,38 @@ class RoleController extends Controller
      */
     public function create(CreateRoleRequest $request) : JsonResponse
     {
-        $user = Auth::user();
-        $requiredPermission = 'create-role';
+        return DB::transaction(function () use ($request) {
+            $user = Auth::user();
+            $requiredPermission = 'create-role';
 
-        if(isPermissionExistForUser($user, $requiredPermission))
-        {
-            $roleDTO = $request -> toRoleDTO();
-            $roleDTO = $roleDTO -> toArray();
+            if(isPermissionExistForUser($user, $requiredPermission))
+            {
+                $roleDTO = $request -> toRoleDTO();
+                $roleDTO = $roleDTO -> toArray();
 
-            $role = new Role();
+                $role = new Role();
 
-            
+                
 
-            $role->name = $roleDTO["name"];
-            $role->description = $roleDTO["description"];
-            $role->cipher = $roleDTO["cipher"];
-            $role->created_by = Auth::user()->id;
+                $role->name = $roleDTO["name"];
+                $role->description = $roleDTO["description"];
+                $role->cipher = $roleDTO["cipher"];
+                $role->created_by = Auth::user()->id;
 
-            $role->save();
+                $role->save();
 
 
-            $roleNewValue = json_encode($role);
-            $model = get_class($role);
+                $roleNewValue = json_encode($role);
+                $model = get_class($role);
 
-            $changeLog = new ChangeLogDTO($model, $role->id, json_encode(null), $roleNewValue, Carbon::now(), Auth::user()->id);
-            ChangeLogController::createLog($changeLog);
+                $changeLog = new ChangeLogDTO($model, $role->id, json_encode(null), $roleNewValue, Carbon::now(), Auth::user()->id);
+                ChangeLogController::createLog($changeLog);
 
-            return response()->json(['Роль успешно создана' => $role], 201);
-        }
+                return response()->json(['Роль успешно создана' => $role], 201);
+            }
 
-        abort(403, $requiredPermission . ' permission required  ');
-        
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 
 
@@ -126,41 +127,42 @@ class RoleController extends Controller
      */
     public function update(UpdateRoleRequest $request, $id) : JsonResponse
     {
+        return DB::transaction(function () use ($id, $request) {
+            $user = Auth::user();
+            $requiredPermission = 'update-role';
 
-        $user = Auth::user();
-        $requiredPermission = 'update-role';
-
-        if(isPermissionExistForUser($user, $requiredPermission))
-        {
-            $roleDTO = $request -> toRoleDTO();
-            $roleDTO = $roleDTO -> toArray();
-            
-            $role = Role::find($id);
-            
-            DB::transaction(function () 
-            use ($role, $roleDTO, $id) {
-
-                $roleOldValue = json_encode($role);
-
-                $role->name = $roleDTO["name"];
-                $role->description = $roleDTO["description"];
-                $role->cipher = $roleDTO["cipher"];
-                $role->update();
-
-
-                $roleNewValue = json_encode($role);
-                $model = get_class($role);
-
+            if(isPermissionExistForUser($user, $requiredPermission))
+            {
+                $roleDTO = $request -> toRoleDTO();
+                $roleDTO = $roleDTO -> toArray();
                 
-                $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, $roleNewValue, Carbon::now(), Auth::user()->id);
-                ChangeLogController::createLog($changeLog);
+                $role = Role::find($id);
+                
+                DB::transaction(function () 
+                use ($role, $roleDTO, $id) {
 
-            },5);
-             
-            return response()->json(['Роль успешно обновлена'=> $role], 200);
-        }
+                    $roleOldValue = json_encode($role);
 
-        abort(403, $requiredPermission . ' permission required  ');
+                    $role->name = $roleDTO["name"];
+                    $role->description = $roleDTO["description"];
+                    $role->cipher = $roleDTO["cipher"];
+                    $role->update();
+
+
+                    $roleNewValue = json_encode($role);
+                    $model = get_class($role);
+
+                    
+                    $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, $roleNewValue, Carbon::now(), Auth::user()->id);
+                    ChangeLogController::createLog($changeLog);
+
+                },5);
+                
+                return response()->json(['Роль успешно обновлена'=> $role], 200);
+            }
+
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 
 
@@ -173,28 +175,30 @@ class RoleController extends Controller
      */
     public function softDelete($id) : JsonResponse
     {
-        $user = Auth::user();
-        $requiredPermission = 'soft-delete-role';
+        return DB::transaction(function () use ($id) {
+            $user = Auth::user();
+            $requiredPermission = 'soft-delete-role';
 
-        if(isPermissionExistForUser($user, $requiredPermission))
-        {
-                $role = Role::findOrFail($id);
-                $roleOldValue = json_encode($role);
+            if(isPermissionExistForUser($user, $requiredPermission))
+            {
+                    $role = Role::findOrFail($id);
+                    $roleOldValue = json_encode($role);
 
-                $role->deleted_by = Auth::user()->id;
-                $role->delete();
-                $role->update();
+                    $role->deleted_by = Auth::user()->id;
+                    $role->delete();
+                    $role->update();
 
-                $roleNewValue = json_encode($role);
-                $model = get_class($role);
-                
-                $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, $roleNewValue, Carbon::now(), Auth::user()->id);
-                ChangeLogController::createLog($changeLog);
+                    $roleNewValue = json_encode($role);
+                    $model = get_class($role);
+                    
+                    $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, $roleNewValue, Carbon::now(), Auth::user()->id);
+                    ChangeLogController::createLog($changeLog);
 
-                return response()->json(['Роль мягко удалена'=> $role], 200);
-        }
+                    return response()->json(['Роль мягко удалена'=> $role], 200);
+            }
 
-        abort(403, $requiredPermission . ' permission required  ');
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 
 
@@ -206,25 +210,27 @@ class RoleController extends Controller
      */
     public function forceDelete($id) : JsonResponse
     {
-        $user = Auth::user();
-        $requiredPermission = 'delete-role';
+        return DB::transaction(function () use ($id) {
+            $user = Auth::user();
+            $requiredPermission = 'delete-role';
 
-        if(isPermissionExistForUser($user, $requiredPermission))
-        {
-                $role = Role::withTrashed()->findOrFail($id);
+            if(isPermissionExistForUser($user, $requiredPermission))
+            {
+                    $role = Role::withTrashed()->findOrFail($id);
 
-                $roleOldValue = json_encode($role);
-                $model = get_class($role);
+                    $roleOldValue = json_encode($role);
+                    $model = get_class($role);
 
-                $role->forceDelete();
+                    $role->forceDelete();
 
-                $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, json_encode(null), Carbon::now(), Auth::user()->id);
-                ChangeLogController::createLog($changeLog);
+                    $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, json_encode(null), Carbon::now(), Auth::user()->id);
+                    ChangeLogController::createLog($changeLog);
 
-                return response()->json(['Роль полностью удалена'] , 200);
-        }
+                    return response()->json(['Роль полностью удалена'] , 200);
+            }
 
-        abort(403, $requiredPermission . ' permission required  ');
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 
 
@@ -236,31 +242,33 @@ class RoleController extends Controller
      * @param int $id
      */
     public function restore($id) : JsonResponse
-    {
-        $user = Auth::user();
-        $requiredPermission = 'restore-role';
+    { 
+        return DB::transaction(function () use ($id) {
+            $user = Auth::user();
+            $requiredPermission = 'restore-role';
 
-        if(isPermissionExistForUser($user, $requiredPermission))
-        {
-                $role = Role::onlyTrashed()->findOrFail($id);
+            if(isPermissionExistForUser($user, $requiredPermission))
+            {
+                    $role = Role::onlyTrashed()->findOrFail($id);
 
-                $roleOldValue = json_encode($role);
-                $model = get_class($role);
+                    $roleOldValue = json_encode($role);
+                    $model = get_class($role);
 
-                $role->deleted_by = NULL;
-                $role->update();
-                $role->restore();
+                    $role->deleted_by = NULL;
+                    $role->update();
+                    $role->restore();
 
-                $roleNewValue = json_encode($role);
+                    $roleNewValue = json_encode($role);
 
-                $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, $roleNewValue, Carbon::now(), Auth::user()->id);
-                ChangeLogController::createLog($changeLog);
+                    $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, $roleNewValue, Carbon::now(), Auth::user()->id);
+                    ChangeLogController::createLog($changeLog);
 
 
-                return response()->json(['Роль была успешно восстановлена'=> $role], 200);
-            
-        }
+                    return response()->json(['Роль была успешно восстановлена'=> $role], 200);
+                
+            }
 
-        abort(403, $requiredPermission . ' permission required  ');
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 }

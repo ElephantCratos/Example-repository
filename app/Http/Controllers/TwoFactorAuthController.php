@@ -75,9 +75,14 @@ class TwoFactorAuthController extends Controller
         $requiredCode = TwoAuthCode::where('expired_at', '>', Carbon::now())
         ->where('user_id', '=' , $user->id) -> first();
         
-         if (Hash::check($codeToApprove, $requiredCode->code)){ 
+         if (Hash::check($codeToApprove, $requiredCode->code)){
+            $requiredCode->delete(); 
             return true; 
         } 
         return false; 
     }
 }
+
+
+
+
