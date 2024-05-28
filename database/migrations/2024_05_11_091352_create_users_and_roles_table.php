@@ -13,8 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users_and_roles', function (Blueprint $table) {
-            $table->foreignId('user_id')->references('id')->on('users');
-            $table->foreignId('role_id')->references('id')->on('roles');
+            $table->foreignId('user_id')->references('id')->on('users')->onDelete('cascade');;
+            $table->foreignId('role_id')->references('id')->on('roles')->onDelete('cascade');;
             $table->timestamp('created_at')->default(Carbon::now());
             $table->foreignId('created_by')->references('id')->on('users');
             $table->softDeletes();

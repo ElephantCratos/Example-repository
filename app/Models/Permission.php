@@ -14,9 +14,14 @@ class Permission extends Model
     public $timestamps = false;
     
     protected $fillable = [ 
+        'id',
         'name',
         'description',
         'cipher',
+        'deleted_at',
+        'deleted_by',
+        'created_at',
+        'created_by'
     ];
 
 

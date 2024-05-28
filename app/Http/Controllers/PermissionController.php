@@ -12,8 +12,12 @@ use App\Http\Controllers\Controller;
 
 use App\DTO\PermissionDTO;
 use App\DTO\PermissionsCollectionDTO;
+use App\DTO\ChangeLogDTO;
 
+use Illuminate\Support\Facades\DB;
 use App\Models\Permission;
+
+use Carbon\Carbon;
 
 
 class PermissionController extends Controller
@@ -25,20 +29,20 @@ class PermissionController extends Controller
      */
     public function showPermissionCollection() : JsonResponse
     {
-        $userRoles = Auth::user()->roles;
-        foreach ($userRoles as $role)
-        {
-            if ($role->permissions->contains('name', 'get-list-permission')) 
-            {
-                $permissions = Permission::withTrashed()->get();
-        
-                $permissionsCollectionDTO = new PermissionsCollectionDTO($permissions);
-                $permissionsCollectionDTO = $permissionsCollectionDTO->getFilteredPermissions();
+        $user = Auth::user();
+        $requiredPermission = 'get-list-permission';
 
-                return response()->json(['permissionsCollection' => $permissionsCollectionDTO], 200);
-            }
+        if(isPermissionExistForUser($user, $requiredPermission))
+        {
+            $permissions = Permission::withTrashed()->get();
+        
+            $permissionsCollectionDTO = new PermissionsCollectionDTO($permissions);
+            $permissionsCollectionDTO = $permissionsCollectionDTO->getFilteredPermissions();
+
+            return response()->json(['permissionsCollection' => $permissionsCollectionDTO], 200);
         }
-        abort(403,'get-list-permission permission required');
+
+        abort(403, $requiredPermission . ' permission required  ');
         
     }
 
@@ -51,19 +55,18 @@ class PermissionController extends Controller
      */
     public function showPermission($id) : JsonResponse
     {
-        
-        $userRoles = Auth::user()->roles;
-        foreach ($userRoles as $roleUser)
-        {
-            if ($roleUser->permissions->contains('name', 'read-permission')) 
-            {    
+            $user = Auth::user();
+            $requiredPermission = 'read-permission';
+
+            if(isPermissionExistForUser($user, $requiredPermission))
+            {
                 $permission = Permission::find($id);
                 $permissionDTO = PermissionDTO::fromPermission($permission);
-                
+                    
                 return response()->json(['permissionInfo' => $permissionDTO->toArray()]);
             }
-        }
-        abort(403,'read-permission permission required');
+
+            abort(403, $requiredPermission . ' permission required  ');
     }
    
 
@@ -76,20 +79,37 @@ class PermissionController extends Controller
      */
     public function create(CreatePermissionRequest $request) : JsonResponse
     {
-        $permissionDTO = $request -> toPermissionDTO();
-        $permissionDTO = $permissionDTO -> toArray();
+        return DB::transaction(function () use ($request) {
+            $user = Auth::user();
+            $requiredPermission = 'create-role';
 
-        $permission = new Permission();
+            if(isPermissionExistForUser($user, $requiredPermission))
+            {
+                $permissionDTO = $request -> toPermissionDTO();
+                $permissionDTO = $permissionDTO -> toArray();
 
-        $permission->name = $permissionDTO["name"];
-        $permission->description = $permissionDTO["description"];
-        $permission->cipher = $permissionDTO["cipher"];
-        $permission->created_by = Auth::user()->id;
+                $permission = new Permission();
 
-        $permission->save();
 
-        return response()->json(['Разрешение успешно создано'=> $permission], 201);
-    
+
+                $permission->name = $permissionDTO["name"];
+                $permission->description = $permissionDTO["description"];
+                $permission->cipher = $permissionDTO["cipher"];
+                $permission->created_by = Auth::user()->id;
+
+                $permission->save();
+
+                $permissionNewValue = json_encode($permission);
+                $model = get_class($permission);
+
+                $changeLog = new ChangeLogDTO($model, $permission->id, json_encode(null), $permissionNewValue, Carbon::now(), Auth::user()->id);
+                ChangeLogController::createLog($changeLog);
+
+                return response()->json(['Разрешение успешно создано'=> $permission], 201);
+            }
+
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 
     /**
@@ -102,18 +122,35 @@ class PermissionController extends Controller
      */
     public function update(UpdatePermissionRequest $request, $id) : JsonResponse
     {
-        $permissionDTO = $request -> toPermissionDTO();
-        $permissionDTO = $permissionDTO -> toArray();
+        return DB::transaction(function () use ($id, $request) {
+            $user = Auth::user();
+            $requiredPermission = 'update-permission';
 
-        $permission = Permission::find($id);
+            if(isPermissionExistForUser($user, $requiredPermission))
+            {
+                $permissionDTO = $request -> toPermissionDTO();
+                $permissionDTO = $permissionDTO -> toArray();
 
-        $permission->name = $permissionDTO["name"];
-        $permission->description = $permissionDTO["description"];
-        $permission->cipher = $permissionDTO["cipher"];
+                $permission = Permission::find($id);
 
-        $permission->update();
+                $permissionOldValue = json_encode($permission);
 
-        return response()->json(['Разрешение успешно обновлено'=> $permission], 200);
+                $permission->name = $permissionDTO["name"];
+                $permission->description = $permissionDTO["description"];
+                $permission->cipher = $permissionDTO["cipher"];
+                $permission->update();
+
+                $permissionNewValue = json_encode($permission);
+                $model = get_class($permission);
+
+                $changeLog = new ChangeLogDTO($model, $id, $permissionOldValue, $permissionNewValue, Carbon::now(), Auth::user()->id);
+                ChangeLogController::createLog($changeLog);
+
+                return response()->json(['Разрешение успешно обновлено'=> $permission], 200);
+            }
+
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 
 
@@ -126,19 +163,30 @@ class PermissionController extends Controller
      */
     public function softDelete($id) : JsonResponse
     {
-        $userRoles = Auth::user()->roles;
-        foreach ($userRoles as $roleUser)
-        {
-            if ($roleUser->permissions->contains('name', 'soft-delete-permission')) 
+        return DB::transaction(function () use ($id) {
+            $user = Auth::user();
+            $requiredPermission = 'soft-delete-permission';
+
+            if(isPermissionExistForUser($user, $requiredPermission))
             {
                 $permission = Permission::findOrFail($id);
+                $permissionOldValue = json_encode($permission);
+
                 $permission->deleted_by = Auth::user()->id;
                 $permission->delete();
                 $permission->update();
+
+                $permissionNewValue = json_encode($permission);
+                $model = get_class($permission);
+
+                $changeLog = new ChangeLogDTO($model, $id, $permissionOldValue, $permissionNewValue, Carbon::now(), Auth::user()->id);
+                ChangeLogController::createLog($changeLog);
+
                 return response()->json(['Разрешение мягко удалено'=> $permission], 200);
             }
-        }
-        abort(403,'soft-delete-permission permission required');
+
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 
 
@@ -150,17 +198,26 @@ class PermissionController extends Controller
      */
     public function forceDelete($id) : JsonResponse
     {
-        $userRoles = Auth::user()->roles;
-        foreach ($userRoles as $roleUser)
-        {
-            if ($roleUser->permissions->contains('name', 'delete-permission')) 
+        return DB::transaction(function () use ($id) {
+            $user = Auth::user();
+            $requiredPermission = 'delete-permission';
+
+            if(isPermissionExistForUser($user, $requiredPermission))
             {
                 $permission = Permission::withTrashed()->findOrFail($id);
+
+                $permissionOldValue = json_encode($permission);
+                $model = get_class($permission);
+
+                $changeLog = new ChangeLogDTO($model, $id, $permissionOldValue, json_encode(null), Carbon::now(), Auth::user()->id);
+                ChangeLogController::createLog($changeLog);
+
                 $permission->forceDelete();
                 return response()->json('Разрешение полностью удалено', 200);
             }
-        }
-        abort(403, 'delete-permission permission required');
+
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 
 
@@ -173,20 +230,31 @@ class PermissionController extends Controller
      */
     public function restore($id) : JsonResponse
     {
-        $userRoles = Auth::user()->roles;
-        foreach ($userRoles as $roleUser)
-        {
-            if ($roleUser->permissions->contains('name', 'restore-permission')) 
+        return DB::transaction(function () use ($id) {
+            $user = Auth::user();
+            $requiredPermission = 'restore-permission';
+
+            if(isPermissionExistForUser($user, $requiredPermission))
             {
                 $permission = Permission::onlyTrashed()->findOrFail($id);
+
+                $permissionOldValue = json_encode($permission);
+                $model = get_class($permission);
+
                 $permission->deleted_by = NULL;
                 $permission->update();
-
                 $permission->restore();
 
+                $permissionNewValue = json_encode($permission);
+
+                $changeLog = new ChangeLogDTO($model, $id, $permissionOldValue, $permissionNewValue, Carbon::now(), Auth::user()->id);
+                ChangeLogController::createLog($changeLog);
+
                 return response()->json(['Роль была успешно восстановлена'=> $permission], 200);
+                
             }
-        }
-        abort(403, 'restore-permission permission required');
+
+            abort(403, $requiredPermission . ' permission required  ');
+        },5);
     }
 }
