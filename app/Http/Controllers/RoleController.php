@@ -152,10 +152,10 @@ class RoleController extends Controller
                     $roleNewValue = json_encode($role);
                     $model = get_class($role);
 
-                    
-                    $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, $roleNewValue, Carbon::now(), Auth::user()->id);
-                    ChangeLogController::createLog($changeLog);
-
+                    if ($roleOldValue != $roleNewValue){
+                        $changeLog = new ChangeLogDTO($model, $id, $roleOldValue, $roleNewValue, Carbon::now(), Auth::user()->id);
+                        ChangeLogController::createLog($changeLog);
+                    }
                 },5);
                 
                 return response()->json(['Роль успешно обновлена'=> $role], 200);

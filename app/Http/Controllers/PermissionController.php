@@ -143,8 +143,10 @@ class PermissionController extends Controller
                 $permissionNewValue = json_encode($permission);
                 $model = get_class($permission);
 
-                $changeLog = new ChangeLogDTO($model, $id, $permissionOldValue, $permissionNewValue, Carbon::now(), Auth::user()->id);
-                ChangeLogController::createLog($changeLog);
+                if ($permissionOldValue != $permissionNewValue){
+                    $changeLog = new ChangeLogDTO($model, $id, $permissionOldValue, $permissionNewValue, Carbon::now(), Auth::user()->id);
+                    ChangeLogController::createLog($changeLog);
+                }
 
                 return response()->json(['Разрешение успешно обновлено'=> $permission], 200);
             }
