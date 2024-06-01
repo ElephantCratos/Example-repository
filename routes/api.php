@@ -94,7 +94,7 @@ Route::group(['prefix' => 'ref'], function () {
         Route::group(['prefix'=> 'log'], function () {
                 Route::get('request', [ServerRequestLogController::class, 'showLogCollection']);
                 Route::get('request/{id}', [ServerRequestLogController::class, 'showServerRequestLog']);
-                Route::delete('request/{id}', [ServerRequestLogController::class, 'showServerRequestLog']);
+                Route::delete('request/{id}', [ServerRequestLogController::class, 'deleteServerRequestLog']);
        
         });
 
