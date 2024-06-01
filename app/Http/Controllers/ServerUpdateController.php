@@ -27,9 +27,10 @@ class ServerUpdateController extends Controller
 
       try {
          $this->lockUpdate();
+         $this->runGitCommand('fetch');
          $this->runGitCommand('checkout origin main');
          $this->runGitCommand('reset --hard HEAD');
-         $this->runGitCommand('clean -fd');
+         $this->runGitCommand('clean -fd');  
          $this->runGitCommand('pull');
 
          $logMessage = 'Проект успешно обновлен из Git';

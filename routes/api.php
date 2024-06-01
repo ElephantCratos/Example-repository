@@ -11,6 +11,7 @@ use App\Http\Controllers\RolesAndPermissionsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\ServerUpdateController;
+use App\Http\Controllers\ServerRequestLogController;
 
 
 /*
@@ -87,10 +88,15 @@ Route::group(['prefix' => 'ref'], function () {
                 Route::put('/permission/{id}',  [PermissionController::class, 'update']);
                 Route::delete('/permission/{id}',  [PermissionController::class, 'forceDelete']);
                 Route::delete('/permission/{id}/soft',  [PermissionController::class,'softDelete']);
-                Route::post ('permission/{id}/restore',  [PermissionController::class, 'restore']);
-
-               
+                Route::post ('permission/{id}/restore',  [PermissionController::class, 'restore']);       
        });
+
+        Route::group(['prefix'=> 'log'], function () {
+                Route::get('request', [ServerRequestLogController::class, 'showLogCollection']);
+                Route::get('request/{id}', [ServerRequestLogController::class, 'showServerRequestLog']);
+                Route::delete('request/{id}', [ServerRequestLogController::class, 'showServerRequestLog']);
+       
+        });
 
    });
    

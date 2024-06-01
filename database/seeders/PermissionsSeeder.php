@@ -52,5 +52,8 @@ class PermissionsSeeder extends Seeder
         $restorePermission = Permission::create(['name' => 'restore-permission', 'cipher' => 'DPP', 'description'=> 'восстановить разрешение', 'created_by'=> '1']);
         $assignRole = Permission::create(['name' => 'assign-role', 'cipher' => 'AR', 'description'=> 'назначить роль', 'created_by'=> '1']);
         $assignPermission = Permission::create(['name' => 'assign-permission', 'cipher' => 'AP', 'description'=> 'назначить разрешение', 'created_by'=> '1']);
+        $getListLogs = Permission::create(['name' => 'get-list-logs', 'cipher' => 'GLL', 'description'=> 'Просматривать список логов', 'created_by'=> '1']);
+        $getSpecificLog = Permission::create(['name' => 'get-specific-log', 'cipher' => 'GSL', 'description'=> 'Просматривать конкретный лог', 'created_by'=> '1']);
+        $deleteSpecificLog = Permission::create(['name' => 'delete-specific-log', 'cipher' => 'DSL', 'description'=> 'Просматривать конкретный лог', 'created_by'=> '1']);
     }
 }
