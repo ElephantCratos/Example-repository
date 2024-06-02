@@ -12,7 +12,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\ServerUpdateController;
 use App\Http\Controllers\ServerRequestLogController;
-
+use App\Http\Controllers\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +26,7 @@ use App\Http\Controllers\ServerRequestLogController;
 */
 
 
+Route::post('testRoute', [ReportController::class,'generateReport']);
 Route::post('/hooks/git', [ServerUpdateController::class,'updateServerToMainBranch']);
 Route::get('ref/user', [UserController::class,'showUsersList']);
 

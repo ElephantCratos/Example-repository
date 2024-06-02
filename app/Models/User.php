@@ -56,4 +56,10 @@ class User extends Authenticatable
         ->withoutTrashed()
         ->wherePivot('deleted_at', null);
     }
+
+    public function logRequests()
+    {
+        return $this->hasMany(LogRequest::class);
+    } 
+
 }
