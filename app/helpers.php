@@ -36,3 +36,16 @@ use App\Models\User;
 
         return $diff;
     }
+    
+    function getCountUniqueUserPermissions(User $user)
+    {
+        $permissions = collect();
+
+        $userRoles = $user->roles;
+
+        foreach ($userRoles as $role){
+            $permissions = $permissions->merge($role->permissions);
+        }
+
+        return $permissions->unique('id')->count();
+    }

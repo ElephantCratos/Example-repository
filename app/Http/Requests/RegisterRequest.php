@@ -42,13 +42,15 @@ class RegisterRequest extends FormRequest
      */
     public function rules(): array
     {
+        try{
         return [
             'username'   => ['required' , 'regex:/^[a-z]+$/i' , 'min:7' , 'unique:users',new StartsWithUppercase()],
             'email'      => ['required', 'email', 'unique:users'],
             'password'   => ['required', Password::min(8) -> letters() ->  numbers() ->mixedCase()],
             'c_password' => ['required', 'same:password'],
             'birthday'   => ['required', 'date_format:Y-m-d'],
-        ];
+        ];}
+        catch(\Exception $e) { dd($e->getMessage());}
     }
     public function messages()
     {

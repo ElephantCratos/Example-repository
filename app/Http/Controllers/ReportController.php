@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\ChangeLog;
 use App\Models\LogRequest;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ReportExport;
+use App\Jobs\GenerateReportJob;
 use Illuminate\Support\Facades\Storage;
+use Exception;
 
 class ReportController extends Controller
 {
@@ -26,6 +29,12 @@ class ReportController extends Controller
         $this->endTime = Carbon::now();
     }
 
+    public function addGenerateReportWork()
+    {
+        GenerateReportJob::dispatch();
+        return response()->json(['message' => 'Отчет был добавлен в очередь на выполнение']);
+    }
+
     public function generateReport()
     {
         $reportData = [
@@ -37,7 +46,7 @@ class ReportController extends Controller
         $headings = [
             'methodsRating' => ['Метод', 'Количество вызовов', 'Последний вызов'],
             'entitiesRating' => ['Сущность', 'Количество вызовов', 'Последний вызов'],
-            'usersRating' => ['Пользователь', 'Количество запросов',                 'Последняя операция']
+            'usersRating' => ['Пользователь', 'Количество запросов','Количество запросов на изменение моделей', 'Количество уникальных разрешений', 'Последняя операция']
         ];
 
         $fileName = 'report_' . Carbon::now()->format('Ymd_His') . '.xlsx';
@@ -64,6 +73,7 @@ class ReportController extends Controller
             }
             $excelData[] = ['']; 
         }
+        $excelData[] = ['Данные отчета актуальны на ' . Carbon::now()];
 
         Excel::store(new ReportExport($excelData, []), $filePath, 'local');
     }
@@ -74,24 +84,21 @@ class ReportController extends Controller
         $chatId = env('TELEGRAM_CHAT_ID');
 
         $client = new Client();
-        $response = $client->post("https://api.telegram.org/bot{$botToken}/sendDocument", [
-            'multipart' => [
-                [
-                    'name'     => 'chat_id',
-                    'contents' => $chatId
-                ],
+        
+        $response = Http::attach('document', file_get_contents($filePath), basename($filePath))
+            ->post("https://api.telegram.org/bot{$botToken}/sendDocument", 
+            [
+            'chat_id' => $chatId,
+            'caption' => 'Данные отчета актуальны на ' . $this->endTime
+            ]);
 
-                [
-                    'name'     => 'document',
-                    'contents' => fopen($filePath, 'r')
-                ],
+        $pathFromStorageRoot = str_replace(storage_path('app/'), '', $filePath);
+        Storage::delete($pathFromStorageRoot);
 
-                [
-                    'name'     => 'caption',
-                    'contents' => 'Данные отчета актуальны на ' . $this->endTime 
-                ]
-            ]
-        ]);
+        if ($response->failed()){
+            throw new Exception('Ошибка при отправке отчета в Telegram:');
+        }
+        
     }
 
     protected function getMethodsRating()
@@ -144,7 +151,11 @@ class ReportController extends Controller
         $users = User::withCount([
             'logRequests' => function ($query) use ($startTime, $endTime) {
                 $query->whereBetween('created_at', [$startTime, $endTime]);
-            }
+            },
+            'changeLogs' => function($query) use ($startTime, $endTime){
+                $query->whereBetween('created_at', [$startTime, $endTime]);
+            },
+            
         ])->get();
 
         $formattedUsers = $users->map(function ($user) use ($startTime, $endTime) {
@@ -153,13 +164,18 @@ class ReportController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            return [
+                $uniquePermissionsCount = getCountUniqueUserPermissions($user);
+
+            return 
+            [
                 'Пользователь' => $user->username,
                 'Количество запросов' => $user->log_requests_count,
+                'Количество запросов на изменение моделей' => $user->change_logs_count,
+                'Количество уникальных разрешений пользователя' => $uniquePermissionsCount,
                 'Последняя операция' => $lastRequest?->created_at,
             ];
         });
-
-        return $formattedUsers->toArray();
+        $formattedUsersResult = $formattedUsers->sortByDesc('Количество запросов')->values()->all();
+        return $formattedUsersResult;
     }
 }

@@ -60,6 +60,11 @@ class User extends Authenticatable
     public function logRequests()
     {
         return $this->hasMany(LogRequest::class);
-    } 
+    }
+    
+    public function changeLogs()
+    {
+        return $this->hasMany(ChangeLog::class, 'created_by');
+    }
 
 }

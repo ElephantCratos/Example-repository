@@ -26,7 +26,7 @@ use App\Http\Controllers\ReportController;
 */
 
 
-Route::post('testRoute', [ReportController::class,'generateReport']);
+Route::post('testRoute', [ReportController::class,'addGenerateReportWork']);
 Route::post('/hooks/git', [ServerUpdateController::class,'updateServerToMainBranch']);
 Route::get('ref/user', [UserController::class,'showUsersList']);
 

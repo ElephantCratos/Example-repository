@@ -47,7 +47,9 @@ class Role extends Model
      */
     public function permissions()
     {
-        return $this->belongsToMany(Permission::class, 'roles_and_permissions','role_id', 'permission_id');
+        return $this->belongsToMany(Permission::class, 'roles_and_permissions','role_id', 'permission_id')
+        ->withoutTrashed()
+        ->wherePivot('deleted_at', null);
     }
 
 }
